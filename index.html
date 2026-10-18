@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="vi" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#061b35">
+<meta name="description" content="THz_codEX v3.4.6 — Combined Executer Engine with Gemini API & Luau output fixes for Delta Mobile.">
+<title>THz_codEX — Integrated Executer Engine</title>
+
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                colors: {
+                    ocean: {
+                        950: '#041326',
+                        900: '#06192f',
+                        850: '#08203c',
+                        800: '#0b2a49',
+                        700: '#123f6a',
+                        600: '#1d83ce',
+                        500: '#59c3ff',
+                        400: '#8eeaff',
+                        300: '#bceeff',
+                        200: '#dcf6ff',
+                        100: '#f0faff'
+                    }
+                },
+                fontFamily: {
+                    sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    mono: ['JetBrains Mono', 'monospace']
+                }
+            }
+        }
+    }
+</script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    color-scheme: dark;
+    --bg: #041326;
+    --bg2: #071d38;
+    --panel: rgba(10,34,62,.9);
+    --panel2: #0b2747;
+    --line: rgba(119,192,255,.18);
+    --text: #e8f5ff;
+    --muted: #9ab8d4;
+    --blue: #59c3ff;
+    --blue2: #1d83ce;
+    --cyan: #8eeaff;
+    --danger: #ff8291;
+    --ok: #77e7bf;
+    --shadow: 0 18px 55px rgba(0,0,0,.32);
+    --radius: 18px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; }
+html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+body { overflow-x: hidden; }
+
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity: .48; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+}
+
+.glass-panel {
+    background: rgba(8,30,55,.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+}
+.glass-input {
+    background: #04172b;
+    border: 1px solid rgba(111,185,239,.25);
+    color: var(--text);
+}
+.glass-input:focus-within {
+    border-color: var(--cyan);
+    box-shadow: 0 0 14px rgba(142,234,255,.2);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(4,19,38,.3); border-radius: 999px; }
+::-webkit-scrollbar-thumb { background: rgba(89,195,255,.4); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(89,195,255,.7); }
+
+.waves {
+    position: fixed;
+    bottom: -25px;
+    left: -10%;
+    width: 120%;
+    height: 190px;
+    z-index: -1;
+    opacity: .17;
+    pointer-events: none;
+}
+.waves path {
+    fill: none;
+    stroke: #28b5ee;
+    stroke-width: 1.1;
+    vector-effect: non-scaling-stroke;
+    animation: wave 13s ease-in-out infinite alternate;
+}
+.waves path:nth-child(2) { stroke: #5c9be8; animation-duration: 17s; animation-direction: alternate-reverse; }
+.waves path:nth-child(3) { stroke: #68dded; animation-duration: 21s; }
+
+@keyframes wave {
+    from { transform: translateX(-1.5%) translateY(0); }
+    to { transform: translateX(1.5%) translateY(-10px); }
+}
+@keyframes thzPageFadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes thzRiseFadeIn { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+
+body { animation: thzPageFadeIn .4s ease-out both; }
+.animate-rise { animation: thzRiseFadeIn .35s cubic-bezier(.2,.75,.25,1) both; }
+</style>
+</head>
+
+<body class="bg-[#041326] text-[#e8f5ff] min-h-screen flex flex-col justify-between overflow-x-hidden antialiased select-none">
+
+<!-- Dynamic Background Gradients and Wave Effects -->
+<div class="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_18%_0%,#123f6a_0%,transparent_38%),radial-gradient(ellipse_at_95%_58%,#073c61_0%,transparent_34%),linear-gradient(155deg,#06192f_0%,#031123_65%,#051a31_100%)]"></div>
+<svg class="waves" viewBox="0 0 1200 180" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 70 C150 20 250 140 410 82 S670 30 820 80 S1040 130 1200 55"/>
+    <path d="M0 104 C160 45 280 155 460 100 S700 45 860 95 S1060 145 1200 85"/>
+    <path d="M0 135 C170 85 300 165 470 130 S730 85 900 128 S1090 155 1200 115"/>
+</svg>
+
+<div class="relative z-10 flex flex-col h-screen max-w-7xl mx-auto w-full p-2 sm:p-4 gap-2">
+    <!-- TOP BAR HEADER -->
+    <header class="glass-panel rounded-2xl p-3 flex flex-col gap-2.5 flex-none border-ocean-500/20">
+        <div class="flex items-center justify-between gap-2 border-b border-ocean-500/15 pb-2">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-ocean-600 via-ocean-500 to-ocean-400 flex items-center justify-center text-ocean-950 font-black text-lg shadow-lg shadow-ocean-500/20">
+                    <i data-lucide="cpu" class="w-5 h-5 text-ocean-950"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-black italic tracking-tight bg-gradient-to-r from-ocean-400 via-ocean-500 to-blue-400 bg-clip-text text-transparent">
+                        THz_codEX
+                    </h1>
+                    <span class="text-[10px] text-ocean-400 font-mono block -mt-1">v3.4.6 Combined · Gemini API Engine</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <button id="btnOpenAddScript" class="px-3 py-1.5 rounded-xl bg-ocean-500/15 hover:bg-ocean-500/25 border border-ocean-400/40 text-ocean-400 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+                    <i data-lucide="file-code-2" class="w-4 h-4"></i>
+                    <span class="font-mono text-[11px] sm:text-xs">SỬA CODE &gt;_</span>
+                </button>
+                <button id="btnOpenUiModal" title="Thư viện UI" class="p-2 rounded-xl bg-ocean-850 hover:bg-ocean-800 border border-ocean-500/20 text-ocean-200 hover:text-ocean-400 transition active:scale-95 flex items-center gap-1">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    <span id="btnUiModeText" class="text-[10px] font-mono text-ocean-400 hidden sm:inline">No UI</span>
+                </button>
+                <button id="btnOpenApiKeyModal" title="Cấu hình API Key" class="p-2 rounded-xl bg-ocean-850 hover:bg-ocean-800 border border-ocean-500/20 text-ocean-200 hover:text-ocean-400 transition active:scale-95 flex items-center gap-1">
+                    <i data-lucide="key" class="w-4 h-4"></i>
+                </button>
+                <button id="btnOpenClearModal" title="Xóa chat" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 transition active:scale-95">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center justify-between bg-ocean-950/70 p-1.5 rounded-xl border border-ocean-800">
+                <span class="text-[11px] text-ocean-300 font-medium px-1">Chế độ AI:</span>
+                <div class="flex items-center gap-1 bg-ocean-900 p-0.5 rounded-lg border border-ocean-800">
+                    <button id="modeCodX" class="px-3 py-1 rounded-md transition font-semibold bg-ocean-500 text-ocean-950 shadow-sm flex items-center gap-1">
+                        <i data-lucide="code-2" class="w-3.5 h-3.5"></i> CodX_AI
+                    </button>
+                    <button id="modeLife" class="px-3 py-1 rounded-md transition font-medium text-ocean-300 hover:text-white flex items-center gap-1">
+                        <i data-lucide="heart" class="w-3.5 h-3.5"></i> Cuộc sống
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between bg-ocean-950/70 p-1.5 rounded-xl border border-ocean-800">
+                <span class="text-[11px] text-ocean-300 font-medium px-1">Môi trường:</span>
+                <div class="flex items-center gap-1 bg-ocean-900 p-0.5 rounded-lg border border-ocean-800">
+                    <button id="envMobile" class="px-3 py-1 rounded-md transition font-semibold bg-ocean-600 text-white shadow-sm flex items-center gap-1">
+                        <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> Mobile (Delta)
+                    </button>
+                    <button id="envDesktop" class="px-3 py-1 rounded-md transition font-medium text-ocean-300 hover:text-white flex items-center gap-1">
+                        <i data-lucide="monitor" class="w-3.5 h-3.5"></i> PC Executer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between text-[11px] font-mono text-ocean-300 border-t border-ocean-800/80 pt-1.5 px-1">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span id="badgeUiLib" class="inline-flex items-center gap-1 text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-md">
+                    <i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i>
+                    <span id="uiLibName">Mặc định: Không UI (Clean Luau for Delta)</span>
+                </span>
+            </div>
+            <div class="text-ocean-400 font-semibold flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Delta Precision Engine</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CHAT CONTAINER -->
+    <main class="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden relative border border-ocean-500/20 shadow-inner">
+        <div id="chatHistory" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 scroll-smooth">
+            <!-- WELCOME SCREEN -->
+            <div id="welcomeMessage" class="glass-panel p-5 rounded-2xl border border-ocean-400/20 max-w-2xl mx-auto my-auto text-center space-y-3 animate-rise">
+                <div class="w-12 h-12 rounded-2xl bg-ocean-500/20 text-ocean-400 flex items-center justify-center mx-auto border border-ocean-400/30 shadow-lg shadow-ocean-500/10">
+                    <i data-lucide="terminal" class="w-6 h-6"></i>
+                </div>
+                <h2 class="text-base sm:text-lg font-bold text-ocean-400">THz_codEX Delta Mobile Precision Executer Engine</h2>
+                <p class="text-xs text-ocean-200 leading-relaxed">
+                    Hệ thống chuyên sửa lỗi Luau/Lua cho --Delta Executer Mobile-- (<code class="bg-ocean-950 px-1 py-0.5 rounded text-ocean-300">game.CoreGui</code> override, GUI missing, Mobile Joystick Fly, Link github raw). Nhấn --SỬA CODE &gt;_-- để phân tích mã lỗi!
+                </p>
+                <div class="flex flex-wrap gap-2 justify-center text-[10px] font-mono pt-1">
+                    <span class="bg-ocean-950/80 px-2.5 py-1 rounded-lg border border-ocean-800 text-emerald-300">-- gethui() Fallback Active</span>
+                    <span class="bg-ocean-950/80 px-2.5 py-1 rounded-lg border border-ocean-800 text-ocean-400">-- Clean Luau Direct Execution</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROCESSING BAR -->
+        <div id="processingIndicator" class="hidden px-4 py-2 bg-ocean-950/90 border-t border-ocean-400/20 flex items-center justify-between text-xs text-ocean-400">
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 border-2 border-ocean-400 border-t-transparent rounded-full animate-spin"></div>
+                <span id="lblProcessStatus">Đang tối ưu Luau & xử lý mã Delta Mobile...</span>
+            </div>
+            <span id="lblElapsedTime" class="font-mono text-[11px] text-ocean-300">0.0s</span>
+        </div>
+    </main>
+
+    <!-- FOOTER CHAT COMPOSER -->
+    <footer class="glass-panel rounded-2xl p-2 sm:p-3 flex-none border border-ocean-500/20 shadow-xl">
+        <form id="chatForm" class="flex items-end gap-2">
+            <div class="flex-1 glass-input rounded-xl p-2 transition focus-within:ring-1 focus-within:ring-ocean-400/50">
+                <textarea 
+                    id="userPrompt" 
+                    rows="1" 
+                    placeholder="Nhập câu hỏi hoặc dán đoạn mã Lua/Luau bị lỗi vào đây..." 
+                    class="w-full bg-transparent text-xs sm:text-sm text-ocean-100 placeholder-ocean-400/70 focus:outline-none resize-none max-h-32 scrollbar-thin select-text"
+                ></textarea>
+            </div>
+            <button 
+                type="submit" 
+                id="btnSend" 
+                class="h-10 px-4 rounded-xl bg-gradient-to-r from-ocean-500 to-ocean-600 hover:brightness-110 text-ocean-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-lg shadow-ocean-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <span>Gửi</span>
+                <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+        </form>
+    </footer>
+</div>
+
+<!-- MODAL 1: ADD SCRIPT & ANALYZER -->
+<div id="modalAddScript" class="fixed inset-0 z-50 bg-ocean-950/80 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="glass-panel w-full max-w-2xl rounded-2xl border border-ocean-400/30 flex flex-col max-h-[90vh] shadow-2xl overflow-hidden animate-rise">
+        <div class="flex items-center justify-between p-3.5 border-b border-ocean-800 bg-ocean-900/80">
+            <div class="flex items-center gap-2 text-ocean-400 font-bold text-sm">
+                <i data-lucide="file-code-2" class="w-5 h-5"></i>
+                <span>Phân Tích & Sửa Lỗi Script Delta Mobile</span>
+            </div>
+            <button class="btnCloseModal text-ocean-300 hover:text-white p-1 rounded-lg hover:bg-ocean-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-4 overflow-y-auto space-y-4 flex-1">
+            <div>
+                <label class="block text-xs font-semibold text-ocean-400 mb-1">Tên script / Mô tả lỗi:</label>
+                <input type="text" id="scriptTitle" placeholder="Ví dụ: Lỗi Delta Fly Script không hiện nút bấm trên Mobile" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-ocean-100 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-ocean-400 mb-1">Nội dung Mã Lua/Luau bị lỗi:</label>
+                <textarea id="scriptSource" rows="8" placeholder="Dán mã Luau bị lỗi vào đây..." class="w-full glass-input rounded-xl p-3 font-mono text-xs text-ocean-200 focus:outline-none resize-none select-text"></textarea>
+            </div>
+
+            <div id="analysisResult" class="hidden glass-panel p-3 rounded-xl border border-ocean-400/20 text-xs space-y-2">
+                <h4 class="font-bold text-ocean-400 flex items-center gap-1.5 border-b border-ocean-800 pb-1">
+                    <i data-lucide="shield-alert" class="w-4 h-4 text-ocean-400"></i>
+                    Báo Cáo Phân Tích Lỗi Executer Delta Mobile
+                </h4>
+                <div id="analysisReportText" class="text-ocean-200 leading-relaxed whitespace-pre-wrap font-mono text-[11px]"></div>
+            </div>
+        </div>
+
+        <div class="p-3 border-t border-ocean-800 bg-ocean-900/80 flex items-center justify-between gap-2">
+            <button id="btnClearScript" class="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-medium">
+                Xóa
+            </button>
+            <div class="flex items-center gap-2">
+                <button id="btnSendScriptToChat" class="px-3 py-1.5 rounded-xl bg-ocean-500/20 hover:bg-ocean-500/30 border border-ocean-400/40 text-ocean-400 text-xs font-medium flex items-center gap-1">
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i> Gửi AI sửa
+                </button>
+                <button id="btnAnalyzeScript" class="px-4 py-1.5 rounded-xl bg-ocean-500 hover:brightness-110 text-ocean-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-ocean-500/20">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5"></i> Phân tích
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: UI LIBRARY SELECTOR -->
+<div id="modalUiSelect" class="fixed inset-0 z-50 bg-ocean-950/80 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl border border-ocean-400/30 flex flex-col shadow-2xl overflow-hidden animate-rise">
+        <div class="flex items-center justify-between p-3.5 border-b border-ocean-800 bg-ocean-900/80">
+            <div class="flex items-center gap-2 text-ocean-400 font-bold text-sm">
+                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                <span>Tùy Chọn Giao Diện UI Script</span>
+            </div>
+            <button class="btnCloseModal text-ocean-300 hover:text-white p-1 rounded-lg hover:bg-ocean-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-4 space-y-2">
+            <p class="text-xs text-ocean-200 mb-3">Chọn thư viện UI. Để đạt hiệu suất tối đa trên --Delta Mobile--, chọn --Không UI / Code Thuần ScreenGui--:</p>
+            <div class="grid grid-cols-1 gap-2">
+                <button data-uilib="NONE" class="btnSelectLib flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/50 text-xs text-ocean-100 transition">
+                    <div>
+                        <span class="font-bold text-emerald-300 block">🚫 Không dùng UI Library (Khuyên dùng)</span>
+                        <span class="text-[10px] text-ocean-300">Tự động chọn Parent = gethui() hoặc PlayerGui</span>
+                    </div>
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                </button>
+                <button data-uilib="Wind UI" class="btnSelectLib flex items-center justify-between p-2.5 rounded-xl bg-ocean-900/80 hover:bg-ocean-800 border border-ocean-800 text-xs text-ocean-100 transition">
+                    <span class="font-semibold text-ocean-400">Wind UI (Siêu nhẹ Mobile)</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-ocean-400"></i>
+                </button>
+                <button data-uilib="Fluent UI" class="btnSelectLib flex items-center justify-between p-2.5 rounded-xl bg-ocean-900/80 hover:bg-ocean-800 border border-ocean-800 text-xs text-ocean-100 transition">
+                    <span class="font-semibold text-ocean-400">Fluent UI</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-ocean-400"></i>
+                </button>
+                <button data-uilib="Rayfield UI" class="btnSelectLib flex items-center justify-between p-2.5 rounded-xl bg-ocean-900/80 hover:bg-ocean-800 border border-ocean-800 text-xs text-ocean-100 transition">
+                    <span class="font-semibold text-ocean-400">Rayfield UI</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-ocean-400"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-3 border-t border-ocean-800 bg-ocean-900/80 flex justify-between">
+            <button id="btnResetUiLib" class="text-xs text-amber-400 hover:text-amber-300">Đặt lại Mặc định</button>
+            <button class="btnCloseModal px-4 py-1.5 rounded-xl bg-ocean-800 text-xs text-ocean-200">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: API KEY CONFIG -->
+<div id="modalApiKey" class="fixed inset-0 z-50 bg-ocean-950/80 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl border border-ocean-400/30 flex flex-col shadow-2xl overflow-hidden animate-rise">
+        <div class="flex items-center justify-between p-3.5 border-b border-ocean-800 bg-ocean-900/80">
+            <div class="flex items-center gap-2 text-ocean-400 font-bold text-sm">
+                <i data-lucide="key" class="w-5 h-5"></i>
+                <span>Cấu hình Gemini API Key</span>
+            </div>
+            <button class="btnCloseModal text-ocean-300 hover:text-white p-1 rounded-lg hover:bg-ocean-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-4 space-y-3">
+            <p class="text-xs text-ocean-200">Bạn có thể tùy chỉnh hoặc sử dụng API Key mặc định của hệ thống.</p>
+            <div>
+                <label class="block text-xs font-semibold text-ocean-400 mb-1">API Key hiện tại:</label>
+                <input type="password" id="customApiKeyInput" placeholder="Nhập API key của bạn (Tùy chọn)..." class="w-full glass-input rounded-xl px-3 py-2 text-xs text-ocean-100 focus:outline-none font-mono">
+            </div>
+        </div>
+        <div class="p-3 border-t border-ocean-800 bg-ocean-900/80 flex justify-end gap-2">
+            <button id="btnSaveApiKey" class="px-4 py-1.5 rounded-xl bg-ocean-500 hover:brightness-110 text-ocean-950 font-bold text-xs shadow-md">Lưu Key</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 4: CLEAR CHAT -->
+<div id="modalClearChat" class="fixed inset-0 z-50 bg-ocean-950/80 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="glass-panel w-full max-w-sm rounded-2xl border border-red-500/30 p-4 shadow-2xl space-y-4 animate-rise">
+        <div class="flex items-center gap-3 text-red-400">
+            <div class="p-2 rounded-xl bg-red-500/20 border border-red-500/30">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-sm text-ocean-100">Xóa Cuộc Trò Chuyện?</h3>
+                <p class="text-xs text-ocean-300">Toàn bộ tin nhắn và lịch sử trò chuyện sẽ bị làm mới.</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <button class="btnCloseModal px-3 py-1.5 rounded-xl bg-ocean-800 text-xs text-ocean-200">Hủy</button>
+            <button id="btnConfirmClearChat" class="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30">Xóa tất cả</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 5: MANUAL COPY FALLBACK -->
+<div id="modalManualCopy" class="fixed inset-0 z-50 bg-ocean-950/85 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="glass-panel w-full max-w-lg rounded-2xl border border-ocean-400/40 p-4 shadow-2xl space-y-3 animate-rise">
+        <div class="flex items-center justify-between border-b border-ocean-800 pb-2">
+            <span class="text-xs font-bold text-ocean-400 flex items-center gap-1.5">
+                <i data-lucide="copy" class="w-4 h-4"></i> Sao chép mã nguồn Delta Executer
+            </span>
+            <button class="btnCloseModal text-ocean-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <textarea id="rawCopyFallbackText" rows="10" readonly class="w-full glass-input rounded-xl p-3 font-mono text-xs text-ocean-400 focus:outline-none select-all"></textarea>
+        <div class="flex justify-between items-center pt-1">
+            <span id="copyFeedbackText" class="text-[11px] text-emerald-400 font-semibold hidden">-- Đã sao chép!</span>
+            <button id="btnDirectModalCopy" class="px-4 py-1.5 rounded-xl bg-ocean-500 hover:brightness-110 text-ocean-950 font-bold text-xs shadow-md shadow-ocean-500/20">Sao Chép</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        aiMode: 'CodX_AI',
+        targetPlatform: 'mobile',
+        selectedUiLib: 'NONE',
+        chatHistory: [],
+        isProcessing: false,
+        abortController: null,
+        timerInterval: null,
+        startTime: 0,
+        apiKey: ''
+    };
+
+    // Default Configured Gemini API details
+    const DEFAULT_GEMINI_API_KEY = 'AQ.Ab8RN6K12uIGY3bcV4WSzG5IUPQS_7dzR3GIm4c8uvzY4nCOgA';
+    const GEMINI_MODEL = 'gemini-3-flash-preview';
+
+    const SYSTEM_PROMPTS = {
+        CodX_AI: (target, uiLib) => `Bạn là CodX_THzGM_AI - Chuyên gia tối ưu Roblox Luau sửa lỗi Delta Executer Mobile.
+Môi trường: Delta Executer Mobile (Android / iOS).
+Cấu hình UI Library: ${uiLib === 'NONE' || !uiLib ? 'TUYỆT ĐỐI KHÔNG DÙNG UI LIB PHỨC TẠP. Dùng ScreenGui với Parent an toàn: gethui() or PlayerGui.' : 'Dùng UI Lib được yêu cầu: ' + uiLib}.
+
+QUY TẮC SỬA VÀ SINH MÃ LUAU:
+1. Xác định lỗi cú pháp, API không tồn tại, sai kiểu dữ liệu, sai luồng sự kiện và lỗi vòng đời nhân vật; sửa nguyên nhân chứ không chỉ viết lại cho đẹp.
+2. Với Roblox Mobile, dùng Humanoid.MoveDirection cho điều khiển joystick; không giả định có bàn phím WASD. Cập nhật hướng theo camera nhất quán và dọn mọi kết nối/instance khi tắt hoặc respawn.
+3. Với ScreenGui, ưu tiên gethui() nếu môi trường thực sự cung cấp, sau đó fallback PlayerGui. Không giả định syn.protect_gui luôn tồn tại hoặc luôn trả về một giá trị.
+4. Chỉ dùng API Roblox/Luau hoặc API executor được nêu rõ; không bịa hàm, không dùng dấu HTML như &lt; thay cho ký tự < trong mã nguồn.
+5. Khi người dùng yêu cầu sửa/generate code, hãy trả một bản hoàn chỉnh có thể sao chép trực tiếp; không để placeholder, không lược bỏ code bằng dấu ba chấm. Giữ nguyên mục tiêu script và nêu ngắn gọn giới hạn nếu không thể xác minh một API.
+6. Tự rà cặp ngoặc, end, dấu nháy, phép nối chuỗi, tên biến và thứ tự khởi tạo trước khi xuất code. Nếu cần giải thích, đặt ngoài khối code.`,
+
+        Life: (target) => `Bạn là AI Cuộc Sống thuộc THz_codEX. Trò chuyện thân thiện, chia sẻ và lắng nghe.`
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+
+        const chatHistoryEl = document.getElementById('chatHistory');
+        const welcomeMessageEl = document.getElementById('welcomeMessage');
+        const chatForm = document.getElementById('chatForm');
+        const userPromptInput = document.getElementById('userPrompt');
+        const btnSend = document.getElementById('btnSend');
+        const processingIndicator = document.getElementById('processingIndicator');
+        const lblProcessStatus = document.getElementById('lblProcessStatus');
+        const lblElapsedTime = document.getElementById('lblElapsedTime');
+
+        const modeCodX = document.getElementById('modeCodX');
+        const modeLife = document.getElementById('modeLife');
+        const envMobile = document.getElementById('envMobile');
+        const envDesktop = document.getElementById('envDesktop');
+        const badgeUiLib = document.getElementById('badgeUiLib');
+        const uiLibName = document.getElementById('uiLibName');
+        const btnUiModeText = document.getElementById('btnUiModeText');
+
+        const modalAddScript = document.getElementById('modalAddScript');
+        const modalUiSelect = document.getElementById('modalUiSelect');
+        const modalApiKey = document.getElementById('modalApiKey');
+        const modalClearChat = document.getElementById('modalClearChat');
+        const modalManualCopy = document.getElementById('modalManualCopy');
+        
+        const btnOpenAddScript = document.getElementById('btnOpenAddScript');
+        const btnOpenUiModal = document.getElementById('btnOpenUiModal');
+        const btnOpenApiKeyModal = document.getElementById('btnOpenApiKeyModal');
+        const btnOpenClearModal = document.getElementById('btnOpenClearModal');
+        const btnConfirmClearChat = document.getElementById('btnConfirmClearChat');
+
+        const customApiKeyInput = document.getElementById('customApiKeyInput');
+        const btnSaveApiKey = document.getElementById('btnSaveApiKey');
+
+        const scriptTitle = document.getElementById('scriptTitle');
+        const scriptSource = document.getElementById('scriptSource');
+        const btnAnalyzeScript = document.getElementById('btnAnalyzeScript');
+        const btnSendScriptToChat = document.getElementById('btnSendScriptToChat');
+        const btnClearScript = document.getElementById('btnClearScript');
+        const analysisResult = document.getElementById('analysisResult');
+        const analysisReportText = document.getElementById('analysisReportText');
+        const rawCopyFallbackText = document.getElementById('rawCopyFallbackText');
+        const btnDirectModalCopy = document.getElementById('btnDirectModalCopy');
+        const copyFeedbackText = document.getElementById('copyFeedbackText');
+        const codeSnippets = new Map();
+
+        modeCodX.addEventListener('click', () => setAiMode('CodX_AI'));
+        modeLife.addEventListener('click', () => setAiMode('Life'));
+
+        function setAiMode(mode) {
+            state.aiMode = mode;
+            if (mode === 'CodX_AI') {
+                modeCodX.className = 'px-3 py-1 rounded-md transition font-semibold bg-ocean-500 text-ocean-950 shadow-sm flex items-center gap-1';
+                modeLife.className = 'px-3 py-1 rounded-md transition font-medium text-ocean-300 hover:text-white flex items-center gap-1';
+            } else {
+                modeLife.className = 'px-3 py-1 rounded-md transition font-semibold bg-pink-500 text-white shadow-sm flex items-center gap-1';
+                modeCodX.className = 'px-3 py-1 rounded-md transition font-medium text-ocean-300 hover:text-white flex items-center gap-1';
+            }
+        }
+
+        envMobile.addEventListener('click', () => setTargetPlatform('mobile'));
+        envDesktop.addEventListener('click', () => setTargetPlatform('desktop'));
+
+        function setTargetPlatform(platform) {
+            state.targetPlatform = platform;
+            if (platform === 'mobile') {
+                envMobile.className = 'px-3 py-1 rounded-md transition font-semibold bg-ocean-600 text-white shadow-sm flex items-center gap-1';
+                envDesktop.className = 'px-3 py-1 rounded-md transition font-medium text-ocean-300 hover:text-white flex items-center gap-1';
+            } else {
+                envDesktop.className = 'px-3 py-1 rounded-md transition font-semibold bg-ocean-600 text-white shadow-sm flex items-center gap-1';
+                envMobile.className = 'px-3 py-1 rounded-md transition font-medium text-ocean-300 hover:text-white flex items-center gap-1';
+            }
+        }
+
+        btnOpenAddScript.addEventListener('click', () => modalAddScript.classList.remove('hidden'));
+        btnOpenUiModal.addEventListener('click', () => modalUiSelect.classList.remove('hidden'));
+        btnOpenApiKeyModal.addEventListener('click', () => modalApiKey.classList.remove('hidden'));
+        btnOpenClearModal.addEventListener('click', () => modalClearChat.classList.remove('hidden'));
+
+        document.querySelectorAll('.btnCloseModal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                modalAddScript.classList.add('hidden');
+                modalUiSelect.classList.add('hidden');
+                modalApiKey.classList.add('hidden');
+                modalClearChat.classList.add('hidden');
+                modalManualCopy.classList.add('hidden');
+            });
+        });
+
+        btnSaveApiKey.addEventListener('click', () => {
+            state.apiKey = customApiKeyInput.value.trim();
+            modalApiKey.classList.add('hidden');
+        });
+
+        document.querySelectorAll('.btnSelectLib').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const libName = btn.getAttribute('data-uilib');
+                setUiLibrary(libName);
+                modalUiSelect.classList.add('hidden');
+            });
+        });
+
+        document.getElementById('btnResetUiLib').addEventListener('click', () => {
+            setUiLibrary('NONE');
+            modalUiSelect.classList.add('hidden');
+        });
+
+        function setUiLibrary(libName) {
+            state.selectedUiLib = libName;
+            if (libName === 'NONE' || !libName) {
+                uiLibName.innerText = 'Mặc định: Không UI (Clean Luau for Delta)';
+                badgeUiLib.className = 'inline-flex items-center gap-1 text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-md';
+                btnUiModeText.innerText = 'No UI';
+            } else {
+                uiLibName.innerText = 'UI Library: ' + libName;
+                badgeUiLib.className = 'inline-flex items-center gap-1 text-ocean-400 bg-ocean-900 border border-ocean-400/30 px-2 py-0.5 rounded-md';
+                btnUiModeText.innerText = libName;
+            }
+        }
+
+        btnConfirmClearChat.addEventListener('click', () => {
+            if (state.isProcessing && state.abortController) {
+                state.abortController.abort();
+            }
+            state.chatHistory = [];
+            codeSnippets.clear();
+            state.isProcessing = false;
+            stopTimer();
+
+            chatHistoryEl.innerHTML = '';
+            chatHistoryEl.appendChild(welcomeMessageEl);
+            welcomeMessageEl.classList.remove('hidden');
+
+            modalClearChat.classList.add('hidden');
+            processingIndicator.classList.add('hidden');
+        });
+
+        btnAnalyzeScript.addEventListener('click', () => {
+            const code = scriptSource.value.trim();
+            const title = scriptTitle.value.trim() || 'CheckScript.lua';
+
+            if (!code) {
+                alert('Vui lòng dán mã Luau bị lỗi vào ô!');
+                return;
+            }
+
+            let errorsFound = [];
+            if (code.includes('game.CoreGui') || code.includes('game:GetService("CoreGui")')) {
+                errorsFound.push('LỖI CORE GUI: Delta Mobile chặn chèn trực tiếp vào game.CoreGui.');
+            }
+            if (code.includes('github.com') && !code.includes('raw.githubusercontent.com')) {
+                errorsFound.push('LỖI LINK HTML: Phát hiện link GitHub chưa đổi sang raw link.');
+            }
+
+            const report = `=== BÁO CÁO PHÂN TÍCH LỖI: ${title} ===
+${errorsFound.length > 0 ? '❌ PHÁT HIỆN LỖI:\n' + errorsFound.map(e => '- ' + e).join('\n') : '-- Mã nguồn không phát hiện lỗi cơ bản.'}
+
+[HƯỚNG SỬA TỰ ĐỘNG]
+Nhấn "Gửi AI sửa" để tự động nhận bản sửa chuẩn nhất cho Delta Mobile!`;
+
+            analysisReportText.innerText = report;
+            analysisResult.classList.remove('hidden');
+        });
+
+        btnSendScriptToChat.addEventListener('click', () => {
+            const code = scriptSource.value.trim();
+            const title = scriptTitle.value.trim() || 'ScriptFix.lua';
+            if (!code) return;
+
+            modalAddScript.classList.add('hidden');
+            const prompt = `Sửa lỗi script không chạy trên Delta Executer Mobile:\nFile: ${title}\n\nMã nguồn:\n\`\`\`lua\n${code}\n\`\`\``;
+            userPromptInput.value = prompt;
+            handleSendPrompt();
+        });
+
+        btnClearScript.addEventListener('click', () => {
+            scriptTitle.value = '';
+            scriptSource.value = '';
+            analysisResult.classList.add('hidden');
+        });
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSendPrompt();
+        });
+
+        userPromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendPrompt();
+            }
+        });
+
+        async function handleSendPrompt() {
+            const prompt = userPromptInput.value.trim();
+            if (!prompt || state.isProcessing) return;
+
+            welcomeMessageEl.classList.add('hidden');
+            userPromptInput.value = '';
+
+            appendMessage('user', prompt);
+
+            state.isProcessing = true;
+            btnSend.disabled = true;
+            processingIndicator.classList.remove('hidden');
+            startTimer();
+
+            const systemInstructionText = SYSTEM_PROMPTS[state.aiMode](state.targetPlatform, state.selectedUiLib);
+            state.abortController = new AbortController();
+
+            try {
+                lblProcessStatus.innerText = 'Đang phân tích cú pháp & tối ưu mã Luau cho Delta...';
+
+                const apiKeyToUse = state.apiKey || DEFAULT_GEMINI_API_KEY;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKeyToUse}`;
+                
+                const contents = state.chatHistory.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                }));
+
+                const payload = {
+                    contents,
+                    systemInstruction: { parts: [{ text: systemInstructionText }] },
+                    generationConfig: {
+                        temperature: 0.2
+                    }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: state.abortController.signal
+                });
+
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    data = {};
+                }
+
+                if (!response.ok) {
+                    const apiMessage = data?.error?.message || `HTTP ${response.status}`;
+                    throw new Error(apiMessage);
+                }
+
+                const responseParts = data?.candidates?.[0]?.content?.parts || [];
+                const aiReply = responseParts
+                    .map(part => typeof part.text === 'string' ? part.text : '')
+                    .filter(Boolean)
+                    .join('\n')
+                    .trim();
+
+                if (!aiReply) {
+                    const blockReason = data?.promptFeedback?.blockReason;
+                    throw new Error(blockReason
+                        ? `Yêu cầu không được xử lý: ${blockReason}. Hãy thử diễn đạt lại.`
+                        : 'Gemini không trả về nội dung. Hãy thử gửi lại.');
+                }
+
+                const elapsed = stopTimer();
+                appendMessage('ai', aiReply, elapsed);
+
+            } catch (error) {
+                stopTimer();
+                if (error?.name === 'AbortError') {
+                    appendMessage('ai', 'Yêu cầu đã bị hủy.');
+                } else {
+                    const message = error?.message || String(error);
+                    appendMessage('ai', `⚠️ Lỗi Gemini API: ${message}`);
+                }
+            } finally {
+                state.isProcessing = false;
+                state.abortController = null;
+                btnSend.disabled = false;
+                processingIndicator.classList.add('hidden');
+            }
+        }
+
+        function startTimer() {
+            state.startTime = performance.now();
+            lblElapsedTime.innerText = '0.0s';
+            state.timerInterval = setInterval(() => {
+                const duration = ((performance.now() - state.startTime) / 1000).toFixed(1);
+                lblElapsedTime.innerText = `${duration}s`;
+            }, 100);
+        }
+
+        function stopTimer() {
+            clearInterval(state.timerInterval);
+            const duration = ((performance.now() - state.startTime) / 1000).toFixed(1);
+            return duration;
+        }
+
+        function appendMessage(role, content, elapsedTime = null) {
+            const msgId = 'msg_' + Date.now();
+            state.chatHistory.push({ id: msgId, role, content });
+
+            const msgWrapper = document.createElement('div');
+            msgWrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} animate-rise`;
+
+            if (role === 'user') {
+                msgWrapper.innerHTML = `
+                    <div class="max-w-[85%] bg-gradient-to-r from-ocean-700 to-ocean-600 text-white p-3 rounded-2xl rounded-tr-none shadow-md text-xs sm:text-sm select-text whitespace-pre-wrap">
+                        ${escapeHtml(content)}
+                    </div>
+                `;
+            } else {
+                const formattedHtml = parseAiResponse(content);
+                const footerTag = elapsedTime ? `<div class="mt-2 pt-1 border-t border-ocean-800 text-[10px] text-ocean-300 font-mono">Xử lý: ${elapsedTime}s · THz_codEX Delta Engine</div>` : '';
+
+                msgWrapper.innerHTML = `
+                    <div class="max-w-[95%] sm:max-w-[88%] glass-panel p-3.5 rounded-2xl rounded-tl-none border border-ocean-400/20 text-xs sm:text-sm space-y-2 select-text">
+                        <div class="flex items-center gap-2 mb-1 text-[11px] text-ocean-400 font-semibold border-b border-ocean-800 pb-1">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            <span>${state.aiMode === 'CodX_AI' ? 'CodX_THzGM_AI' : 'AI Cuộc sống'}</span>
+                        </div>
+                        <div class="prose prose-invert max-w-none space-y-2 text-ocean-100 leading-relaxed">
+                            ${formattedHtml}
+                        </div>
+                        ${footerTag}
+                    </div>
+                `;
+            }
+
+            chatHistoryEl.appendChild(msgWrapper);
+            chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+            lucide.createIcons();
+
+            bindCodeCopyButtons(msgWrapper);
+        }
+
+        function parseAiResponse(text) {
+            const source = String(text ?? '');
+            const codeBlockRegex = /```([a-zA-Z0-9_+#.-]*)[ \t]*\r?\n([\s\S]*?)```/g;
+            let html = '';
+            let cursor = 0;
+            let match;
+
+            while ((match = codeBlockRegex.exec(source)) !== null) {
+                html += formatPlainText(source.slice(cursor, match.index));
+
+                const blockId = 'code_' + Math.random().toString(36).slice(2, 11);
+                const languageLabel = match[1] || 'lua';
+                const cleanCode = match[2].replace(/\r\n/g, '\n').replace(/\n$/, '');
+                codeSnippets.set(blockId, cleanCode);
+
+                html += `
+                    <div class="my-3 rounded-xl overflow-hidden border border-ocean-400/30 bg-ocean-950 font-mono text-xs">
+                        <div class="flex items-center justify-between px-3 py-1.5 bg-ocean-900 border-b border-ocean-800 text-[11px] text-ocean-300">
+                            <span class="font-bold text-ocean-400">${escapeHtml(languageLabel)}</span>
+                            <button type="button" data-code-id="${blockId}" class="btnCopyCode px-2.5 py-1 rounded-lg bg-ocean-500/20 hover:bg-ocean-500/30 text-ocean-400 border border-ocean-400/40 flex items-center gap-1.5 transition active:scale-95">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                <span>Sao chép</span>
+                            </button>
+                        </div>
+                        <pre class="p-3 overflow-x-auto text-ocean-400 scrollbar-thin select-all"><code>${escapeHtml(cleanCode)}</code></pre>
+                    </div>
+                `;
+                cursor = codeBlockRegex.lastIndex;
+            }
+
+            html += formatPlainText(source.slice(cursor));
+            return html;
+        }
+
+        function formatPlainText(text) {
+            return escapeHtml(text)
+                .replace(/\*\*(.*?)\*\*/g, '<span class="text-ocean-400 font-semibold">-- $1 --</span>')
+                .replace(/`([^`\n]+)`/g, '<code class="px-1 rounded bg-ocean-950 text-ocean-300">$1</code>')
+                .replace(/\r?\n/g, '<br>');
+        }
+
+        function bindCodeCopyButtons(container) {
+            container.querySelectorAll('.btnCopyCode').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const blockId = btn.getAttribute('data-code-id');
+                    const rawCode = codeSnippets.get(blockId);
+                    if (typeof rawCode !== 'string') return;
+
+                    let success = false;
+
+                    if (navigator.clipboard && window.isSecureContext) {
+                        try {
+                            await navigator.clipboard.writeText(rawCode);
+                            success = true;
+                        } catch (e) {}
+                    }
+
+                    if (!success) {
+                        try {
+                            const ta = document.createElement('textarea');
+                            ta.value = rawCode;
+                            ta.style.position = 'fixed';
+                            document.body.appendChild(ta);
+                            ta.select();
+                            success = document.execCommand('copy');
+                            document.body.removeChild(ta);
+                        } catch (err) {}
+                    }
+
+                    if (success) {
+                        const orig = btn.innerHTML;
+                        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span class="text-emerald-400 font-bold">Đã chép! --</span>`;
+                        lucide.createIcons();
+                        setTimeout(() => {
+                            btn.innerHTML = orig;
+                            lucide.createIcons();
+                        }, 2000);
+                    } else {
+                        rawCopyFallbackText.value = rawCode;
+                        modalManualCopy.classList.remove('hidden');
+                    }
+                });
+            });
+        }
+
+        btnDirectModalCopy.addEventListener('click', () => {
+            rawCopyFallbackText.select();
+            document.execCommand('copy');
+            copyFeedbackText.classList.remove('hidden');
+        });
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    });
+</script>
+</body>
+</html>
